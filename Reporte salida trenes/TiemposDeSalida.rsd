@@ -1,0 +1,64 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<SharedDataSet xmlns="http://schemas.microsoft.com/sqlserver/reporting/2010/01/shareddatasetdefinition" xmlns:rd="http://schemas.microsoft.com/SQLServer/reporting/reportdesigner">
+  <DataSet Name="DataSet1">
+    <Query>
+      <DataSourceReference>DataSource</DataSourceReference>
+      <DataSetParameters>
+        <DataSetParameter Name="@senal">
+          <ReadOnly>false</ReadOnly>
+          <Nullable>true</Nullable>
+          <OmitFromQuery>false</OmitFromQuery>
+          <rd:DbType>String</rd:DbType>
+        </DataSetParameter>
+      </DataSetParameters>
+      <CommandText>--declare @senal varchar(10);
+declare @horaVerde	time(0);
+declare @horaSalida	time(0);
+declare @horaCorte	time(0);
+
+declare @datosSalida Table(
+	HoraVerde time(0),
+	HoraSalida time(0),
+	SpreadTime int
+)
+
+--set @senal = '16R01';
+set @horaVerde =	(select TOP 1 hora FROM Trafico_columnas WHERE Evento LIKE 'Senal%' + @senal + '%abierto%');
+set @horaSalida =	(select TOP 1 hora FROM Trafico_columnas WHERE Evento LIKE  'Senal%' + @senal + '%cerrado%' AND Hora &gt; @horaVerde);
+set @horaCorte = '00:00:00';
+
+while (@horaVerde &gt; @horaCorte)
+begin 		
+		IF @horaVerde is not null AND @horaSalida is not null 
+		BEGIN
+			Insert into @datosSalida values (
+			@horaVerde,
+			@horaSalida,
+			datediff(ss, @horaVerde, @horaSalida)
+			)
+		END
+	
+set @horaCorte = @horaSalida;
+set @horaVerde =	(select TOP 1 hora FROM Trafico_columnas WHERE Evento LIKE 'Senal%' + @senal + '%abierto%' AND Hora &gt; @horaCorte);
+set @horaSalida =	(select TOP 1 hora FROM Trafico_columnas WHERE Evento LIKE  'Senal%' + @senal + '%cerrado%' AND Hora &gt; @horaVerde);
+
+end
+
+select * from @datosSalida;</CommandText>
+    </Query>
+    <Fields>
+      <Field Name="HoraVerde">
+        <DataField>HoraVerde</DataField>
+        <rd:TypeName>System.TimeSpan</rd:TypeName>
+      </Field>
+      <Field Name="HoraSalida">
+        <DataField>HoraSalida</DataField>
+        <rd:TypeName>System.TimeSpan</rd:TypeName>
+      </Field>
+      <Field Name="SpreadTime">
+        <DataField>SpreadTime</DataField>
+        <rd:TypeName>System.Int32</rd:TypeName>
+      </Field>
+    </Fields>
+  </DataSet>
+</SharedDataSet>
